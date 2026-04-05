@@ -6,6 +6,12 @@ from string import punctuation
 from nltk.corpus import stopwords
 from nltk.stem.snowball import SnowballStemmer
 
+import nltk
+
+# Download required NLTK data if not present
+nltk.download('punkt')
+nltk.download('stopwords')
+
 app = Flask(__name__)
 CORS(app)                            # ← add karo
 
