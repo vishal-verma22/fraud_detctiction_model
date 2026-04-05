@@ -11,13 +11,21 @@ import os
 # --------------------------
 # Setup NLTK data directory
 # --------------------------
+# Local folder inside your project
 nltk_data_dir = os.path.join(os.path.dirname(__file__), "nltk_data")
 if not os.path.exists(nltk_data_dir):
     os.makedirs(nltk_data_dir)
 
-# Download required NLTK data to local folder
-nltk.download("punkt", download_dir=nltk_data_dir)
-nltk.download("stopwords", download_dir=nltk_data_dir)
+# Download required NLTK data to local folder (only if missing)
+try:
+    nltk.data.find("tokenizers/punkt")
+except LookupError:
+    nltk.download("punkt", download_dir=nltk_data_dir)
+
+try:
+    nltk.data.find("corpora/stopwords")
+except LookupError:
+    nltk.download("stopwords", download_dir=nltk_data_dir)
 
 # Tell NLTK to use this folder
 nltk.data.path.append(nltk_data_dir)
