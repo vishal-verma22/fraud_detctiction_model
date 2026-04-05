@@ -28,7 +28,7 @@ def clean_text(text):
 
 @app.route("/")
 def home():
-     return "Server is running ✅"a
+     return "Server is running ✅"
 
 @app.route("/predict_text", methods=["POST"])
 def predict_text():
