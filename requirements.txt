@@ -3,3 +3,5 @@ flask-cors
 nltk
 scikit-learn
 gunicorn
+pickle-mixin==1.0.2
+indic-transliteration==1.5.0
