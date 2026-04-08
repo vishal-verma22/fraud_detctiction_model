@@ -28,7 +28,7 @@ nltk.data.path.append(nltk_data_dir)
 # --------------------------
 ASSEMBLYAI_API_KEY = os.environ.get("ASSEMBLYAI_API_KEY")
 if ASSEMBLYAI_API_KEY:
-    aai.settings.api_key = ASSEMBLYAI_API_KEY
+    aai.api_key = ASSEMBLYAI_API_KEY  # ✅ FIXED: changed from aai.settings.api_key
     print("✅ AssemblyAI API key loaded")
 else:
     print("⚠️ WARNING: ASSEMBLYAI_API_KEY not set! Audio transcription will fail.")
