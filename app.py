@@ -5,10 +5,10 @@ from nltk.tokenize import word_tokenize
 from string import punctuation
 from nltk.corpus import stopwords
 from nltk.stem.snowball import SnowballStemmer
+from google.cloud import speech
 import nltk
 import os
 import tempfile
-import assemblyai as aai
 
 # --------------------------
 # Setup NLTK data directory
@@ -24,14 +24,11 @@ nltk.download("stopwords", download_dir=nltk_data_dir, quiet=True)
 nltk.data.path.append(nltk_data_dir)
 
 # --------------------------
-# AssemblyAI Setup
+# Google Speech-to-Text Setup
 # --------------------------
-ASSEMBLYAI_API_KEY = os.environ.get("ASSEMBLYAI_API_KEY")
-if ASSEMBLYAI_API_KEY:
-    aai.api_key = ASSEMBLYAI_API_KEY  # ✅ FIXED: changed from aai.settings.api_key
-    print("✅ AssemblyAI API key loaded")
-else:
-    print("⚠️ WARNING: ASSEMBLYAI_API_KEY not set! Audio transcription will fail.")
+# Credentials are automatically picked from GOOGLE_APPLICATION_CREDENTIALS environment variable
+stt_client = speech.SpeechClient()
+print("✅ Google Speech-to-Text client initialized")
 
 # --------------------------
 # Flask app setup
@@ -67,10 +64,9 @@ def clean_text(text):
 # --------------------------
 @app.route("/")
 def home():
-    api_status = "✅ Configured" if ASSEMBLYAI_API_KEY else "❌ Missing API Key"
     return jsonify({
         "status": "running",
-        "assemblyai": api_status,
+        "stt": "Google Speech-to-Text",
         "message": "Use /predict_text for text or /analyze_audio for audio transcription"
     })
 
@@ -95,39 +91,36 @@ def predict_text():
 
 @app.route("/analyze_audio", methods=["POST"])
 def analyze_audio():
-    """New endpoint for audio transcription + fraud detection"""
-    # Check if API key is set
-    if not ASSEMBLYAI_API_KEY:
-        return jsonify({"error": "ASSEMBLYAI_API_KEY not configured on server"}), 500
-
-    # Get audio file
-    if 'audio' not in request.files and not request.data:
-        return jsonify({"error": "No audio file provided"}), 400
-
-    if 'audio' in request.files:
-        audio_file = request.files['audio']
-        audio_bytes = audio_file.read()
-    else:
-        audio_bytes = request.data
-
-    # Save temporarily
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-        tmp.write(audio_bytes)
-        tmp_path = tmp.name
-
+    """Audio transcription using Google Speech-to-Text + Fraud Detection"""
     try:
-        # Transcribe with AssemblyAI
-        transcriber = aai.Transcriber()
-        config = aai.TranscriptionConfig(
-            language_code="en",
-            speech_model=aai.SpeechModel.best,
+        # Get audio file
+        if 'audio' not in request.files and not request.data:
+            return jsonify({"error": "No audio file provided"}), 400
+
+        if 'audio' in request.files:
+            audio_file = request.files['audio']
+            audio_bytes = audio_file.read()
+        else:
+            audio_bytes = request.data
+
+        # Configure Google Speech-to-Text
+        audio = speech.RecognitionAudio(content=audio_bytes)
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            sample_rate_hertz=16000,
+            language_code="en-IN",  # Indian English
+            enable_automatic_punctuation=True,
         )
-        transcript = transcriber.transcribe(tmp_path, config)
 
-        if transcript.status == aai.TranscriptStatus.error:
-            return jsonify({"error": transcript.error}), 500
+        # Transcribe
+        response = stt_client.recognize(config=config, audio=audio)
 
-        text = transcript.text
+        if not response.results:
+            return jsonify({"error": "No speech detected", "transcript": ""}), 400
+
+        text = response.results[0].alternatives[0].transcript
+        print(f"🎤 Google STT: {text}")
+
         if not text.strip():
             return jsonify({"prediction": "normal", "transcript": ""})
 
@@ -147,11 +140,8 @@ def analyze_audio():
         })
 
     except Exception as e:
+        print(f"❌ Error in analyze_audio: {e}")
         return jsonify({"error": str(e)}), 500
-    finally:
-        # Clean up temp file
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
 
 @app.route("/health", methods=["GET"])
 def health():
