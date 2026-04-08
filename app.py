@@ -130,7 +130,7 @@ def analyze_audio():
         
         if not response.results:
             print("⚠️ No speech detected in audio")
-            return jsonify({"error": "No speech detected", "transcript": ""}), 400
+            return jsonify({"prediction": "normal", "transcript": "", "raw_prediction": "no_speech"}), 200
         
         text = response.results[0].alternatives[0].transcript
         print(f"🎤 Google STT: {text}")
