@@ -1,7 +1,7 @@
 Flask
 flask-cors
 nltk
-scikit-learn==1.8.
+scikit-learn==1.8.0
 gunicorn
 pickle-mixin==1.0.2
 indic-transliteration==1.5.0
